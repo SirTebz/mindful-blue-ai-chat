@@ -1,10 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { Send, RotateCcw } from 'lucide-react';
 import ChatMessage from './ChatMessage';
 import SuggestedActions from './SuggestedActions';
 import CrisisAlert from './CrisisAlert';
 import BreathingExercise from './BreathingExercise';
+import ResetChatDialog from './ResetChatDialog';
 import { detectEmotion } from './EmotionDetector';
 
 interface Message {
@@ -27,6 +27,7 @@ const ChatInterface = () => {
   const [inputText, setInputText] = useState('');
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
   const [showBreathingExercise, setShowBreathingExercise] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -34,6 +35,21 @@ const ChatInterface = () => {
   };
 
   useEffect(scrollToBottom, [messages]);
+
+  const handleResetChat = () => {
+    setMessages([
+      {
+        id: '1',
+        text: "Hi, I'm here to help you manage stress and anxiety. How are you feeling today?",
+        isBot: true,
+        timestamp: new Date(),
+      }
+    ]);
+    setInputText('');
+    setShowCrisisAlert(false);
+    setShowBreathingExercise(false);
+    setShowResetDialog(false);
+  };
 
   const generateBotResponse = (userMessage: string, emotion: string): string => {
     if (emotion === 'crisis') {
@@ -143,6 +159,22 @@ const ChatInterface = () => {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Chat Header with Reset Button */}
+      <div className="flex items-center justify-between p-4 border-b border-blue-100 bg-blue-50">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+          <span className="text-sm text-blue-600 font-medium">Chat Active</span>
+        </div>
+        <button
+          onClick={() => setShowResetDialog(true)}
+          className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-colors"
+          title="Reset Chat"
+        >
+          <RotateCcw className="w-4 h-4" />
+          Reset Chat
+        </button>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <ChatMessage
@@ -188,6 +220,12 @@ const ChatInterface = () => {
       <BreathingExercise 
         isActive={showBreathingExercise}
         onComplete={() => setShowBreathingExercise(false)}
+      />
+
+      <ResetChatDialog
+        isOpen={showResetDialog}
+        onClose={() => setShowResetDialog(false)}
+        onConfirm={handleResetChat}
       />
     </div>
   );
