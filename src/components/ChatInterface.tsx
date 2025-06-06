@@ -6,6 +6,7 @@ import CrisisAlert from './CrisisAlert';
 import BreathingExercise from './BreathingExercise';
 import ResetChatDialog from './ResetChatDialog';
 import { detectEmotion } from './EmotionDetector';
+import MindfulnessExercises from './MindfulnessExercises';
 
 interface Message {
   id: string;
@@ -29,6 +30,8 @@ const ChatInterface = () => {
   const [showBreathingExercise, setShowBreathingExercise] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showMindfulnessExercises, setShowMindfulnessExercises] = useState(false);
+  const [crisisLevel, setCrisisLevel] = useState<'low' | 'medium' | 'high'>('medium');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -111,9 +114,45 @@ const ChatInterface = () => {
     }, 1000);
   };
 
+  const handleExerciseComplete = (exerciseId: string, feedback: string) => {
+    // Create a message about the completed exercise
+    const exerciseMessage: Message = {
+      id: Date.now().toString(),
+      text: `I completed the ${exerciseId.replace('-', ' ')} exercise. ${feedback}`,
+      isBot: false,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, exerciseMessage]);
+
+    // Generate a supportive bot response
+    setTimeout(() => {
+      const responses = [
+        "That's wonderful that you took time for mindfulness! How are you feeling now compared to before the exercise?",
+        "Great job completing that exercise! Mindfulness takes practice, and you're building that skill. What did you notice during the exercise?",
+        "I'm so proud of you for taking care of your mental health. Regular mindfulness practice can really help manage stress and anxiety. Would you like to try another exercise or talk about how you're feeling?",
+      ];
+      
+      const botResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        text: responses[Math.floor(Math.random() * responses.length)],
+        isBot: true,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, botResponse]);
+    }, 1000);
+
+    setShowMindfulnessExercises(false);
+  };
+
   const handleActionClick = (action: string) => {
     if (action === 'Start breathing exercise') {
       setShowBreathingExercise(true);
+      return;
+    }
+
+    if (action === 'Start mindfulness exercise') {
+      setShowMindfulnessExercises(true);
       return;
     }
 
@@ -211,6 +250,13 @@ const ChatInterface = () => {
           If you're in crisis, please call 0800 456 789
         </div>
       </div>
+
+      <MindfulnessExercises 
+        isVisible={showMindfulnessExercises}
+        onClose={() => setShowMindfulnessExercises(false)}
+        onExerciseComplete={handleExerciseComplete}
+        userStressLevel={crisisLevel === 'high' ? 'high' : crisisLevel === 'low' ? 'low' : 'medium'}
+      />
 
       <CrisisAlert 
         isVisible={showCrisisAlert} 
