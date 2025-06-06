@@ -23,7 +23,7 @@ const CrisisAlert = ({ isVisible, onClose }: CrisisAlertProps) => {
             <Phone className="w-5 h-5 text-red-600" />
             <div>
               <div className="font-medium text-red-900">Crisis Hotline</div>
-              <div className="text-red-700 text-sm">1-800-XXX-XXXX</div>
+              <div className="text-red-700 text-sm">0800 456 789</div>
             </div>
           </div>
           

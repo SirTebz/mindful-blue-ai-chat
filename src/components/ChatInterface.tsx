@@ -176,7 +176,7 @@ const ChatInterface = () => {
           </button>
         </div>
         <div className="text-xs text-blue-400 mt-2 text-center">
-          If you're in crisis, please call 1-800-XXX-XXXX
+          If you're in crisis, please call 0800 456 789
         </div>
       </div>
 
