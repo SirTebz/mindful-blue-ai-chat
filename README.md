@@ -1,33 +1,102 @@
-# Welcome to your Lovable project
+# Mindful AI Chat (Loveable App)
 
-## Project info
+MindfulChat is an AI-powered mental health companion designed to provide 24/7 support for managing stress, anxiety, and emotional wellbeing. The app creates a safe, judgment-free space where users can express their feelings and receive personalized guidance, coping strategies, and crisis support when needed.
 
-**URL**: https://lovable.dev/projects/798fb390-b450-47fe-981a-7f99cf1e3a6d
+## 🔍 Overview
 
-## How can I edit this code?
+This project is built with:
 
-There are several ways of editing your application.
+- ⚡ Vite
+- 🟦 TypeScript
+- ⚛️ React
+- 🎨 shadcn-ui
+- 🧩 Tailwind CSS
 
-**Use Lovable**
+## 🔑 Key Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/798fb390-b450-47fe-981a-7f99cf1e3a6d) and start prompting.
+**🤖 Intelligent Chat Interface**
 
-Changes made via Lovable will be committed automatically to this repo.
+Natural conversation with an empathetic AI companion
+Real-time emotion detection based on user messages
+Personalized responses based on detected emotional state
 
-**Use your preferred IDE**
+**🧠 AI-Based Emotion Detection**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Automatically detects emotions like anxiety, sadness, anger, happiness, and fear
+Identifies crisis language and triggers appropriate responses
+Provides context-aware support and suggestions
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**🚨 Crisis Detection & Support**
 
-Follow these steps:
+Immediate crisis alert system for users expressing suicidal thoughts
+Direct access to crisis hotlines and text support
+Safety-first approach with professional resource connections
+
+**💙 Guided Wellness Resources**
+
+Interactive breathing exercises with visual guidance
+5-4-3-2-1 grounding techniques for anxiety management
+Mood check-ins and emotional tracking
+Evidence-based anxiety management strategies
+
+**🎨 Calming Design**
+
+Soft blue and white color scheme promoting tranquility
+Clean, modern interface reducing cognitive load
+Responsive design accessible on all devices
+Thoughtful micro-interactions and smooth transitions
+
+**🛡️ Safety Features**
+
+Continuous crisis monitoring and intervention
+Clear disclaimers about professional care
+Emergency contact information readily available
+Ethical AI responses prioritizing user safety
+
+## 🗂️ Project Structure
+
+```sh
+├── src/
+│   ├── components/
+│   ├── docs/       
+│   ├── pages/            
+│   ├── hooks/            
+│   ├── lib/              
+│   └── App.css
+│   └── App.tsx
+│   └── Index.css
+│   └── main.tsx
+│   └── vite-env.d.ts          
+├── public/               
+├── components.json
+├── eslint.config.ts
+├── index.html
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── tailwind.config.ts
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+├── vite.config.ts        
+└── README.md             
+```
+
+## 📦 Getting Started
+
+**Prerequisites**
+- Node.js (v18 or higher recommended)
+- npm or yarn
+- [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+
+**Installation**
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone https://github.com/SirTebz/mindful-blue-chat.git
 
 # Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+cd mindful-blue-chat
 
 # Step 3: Install the necessary dependencies.
 npm i
@@ -36,38 +105,7 @@ npm i
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Live Demo
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/798fb390-b450-47fe-981a-7f99cf1e3a6d) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+[Demo](https://mindful-blue-chat.lovable.app)
