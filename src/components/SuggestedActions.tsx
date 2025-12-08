@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Brain, Heart, MessageCircle, Users } from 'lucide-react';
+import { Brain, Heart, Timer, BarChart3 } from 'lucide-react';
 
 interface SuggestedActionsProps {
   onActionClick: (action: string) => void;
@@ -11,28 +10,28 @@ const SuggestedActions = ({ onActionClick }: SuggestedActionsProps) => {
     {
       icon: Brain,
       text: 'Start breathing exercise',
-      description: 'Quick 4-7-8 breathing technique'
+      description: '4-7-8 breathing technique'
     },
     {
       icon: Heart,
       text: 'Start mindfulness exercise',
-      description: 'Guided exercises for calm and focus'
+      description: 'Guided exercises for calm'
     },
     {
-      icon: MessageCircle,
-      text: 'Talk about anxiety strategies',
-      description: 'Learn coping techniques'
+      icon: Timer,
+      text: 'Start meditation timer',
+      description: 'Timed meditation sessions'
     },
     {
-      icon: Users,
-      text: 'Check my mood today',
-      description: 'Daily emotional wellness check'
+      icon: BarChart3,
+      text: 'Track my mood',
+      description: 'Log how you\'re feeling'
     }
   ];
 
   return (
     <div className="p-4 border-t border-blue-100 dark:border-slate-600 bg-blue-25 dark:bg-slate-700">
-      <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">Suggested actions:</h3>
+      <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">Quick actions:</h3>
       <div className="grid grid-cols-2 gap-2">
         {actions.map((action, index) => (
           <button

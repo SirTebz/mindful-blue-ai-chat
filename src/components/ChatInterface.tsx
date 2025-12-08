@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, RotateCcw } from 'lucide-react';
+import { Send, RotateCcw, Loader2 } from 'lucide-react';
 import ChatMessage from './ChatMessage';
 import SuggestedActions from './SuggestedActions';
 import CrisisAlert from './CrisisAlert';
 import BreathingExercise from './BreathingExercise';
 import ResetChatDialog from './ResetChatDialog';
-import { detectEmotion } from './EmotionDetector';
 import MindfulnessExercises from './MindfulnessExercises';
+import MoodTracker from './MoodTracker';
+import MeditationTimer from './MeditationTimer';
+import { useAIChat } from '@/hooks/useAIChat';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -16,11 +19,13 @@ interface Message {
   emotion?: string;
 }
 
+const CRISIS_KEYWORDS = ['suicide', 'kill myself', 'end my life', 'want to die', 'self-harm', 'hurt myself'];
+
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hi, I'm here to help you manage stress and anxiety. How are you feeling today?",
+      text: "Hi, I'm Mindful AI, your mental wellness companion. I'm here to listen and support you. How are you feeling today?",
       isBot: true,
       timestamp: new Date(),
     }
@@ -29,9 +34,13 @@ const ChatInterface = () => {
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
   const [showBreathingExercise, setShowBreathingExercise] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showMindfulnessExercises, setShowMindfulnessExercises] = useState(false);
-  const [crisisLevel, setCrisisLevel] = useState<'low' | 'medium' | 'high'>('medium');
+  const [showMoodTracker, setShowMoodTracker] = useState(false);
+  const [showMeditationTimer, setShowMeditationTimer] = useState(false);
+  const [currentMood, setCurrentMood] = useState<number | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const { sendMessage, isLoading } = useAIChat();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -43,7 +52,7 @@ const ChatInterface = () => {
     setMessages([
       {
         id: '1',
-        text: "Hi, I'm here to help you manage stress and anxiety. How are you feeling today?",
+        text: "Hi, I'm Mindful AI, your mental wellness companion. I'm here to listen and support you. How are you feeling today?",
         isBot: true,
         timestamp: new Date(),
       }
@@ -52,95 +61,229 @@ const ChatInterface = () => {
     setShowCrisisAlert(false);
     setShowBreathingExercise(false);
     setShowResetDialog(false);
+    setCurrentMood(null);
   };
 
-  const generateBotResponse = (userMessage: string, emotion: string): string => {
-    if (emotion === 'crisis') {
+  const checkForCrisis = (text: string): boolean => {
+    const lowerText = text.toLowerCase();
+    return CRISIS_KEYWORDS.some(keyword => lowerText.includes(keyword));
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || isLoading) return;
+
+    const userText = inputText.trim();
+    
+    // Check for crisis keywords
+    if (checkForCrisis(userText)) {
       setShowCrisisAlert(true);
-      return "I'm really concerned about you. Please know that you're not alone and there are people who want to help. I'm showing you some crisis resources now.";
     }
 
-    if (emotion === 'anxious') {
-      return "I can hear that you're feeling anxious. That's completely understandable. Would you like to try a breathing exercise or talk about some strategies that might help?";
-    }
-
-    if (emotion === 'sad') {
-      return "I'm sorry you're feeling down. It's okay to have these feelings. Sometimes talking about what's bothering you can help. What's been weighing on your mind?";
-    }
-
-    if (emotion === 'angry') {
-      return "It sounds like you're feeling frustrated. Those feelings are valid. Would you like to explore what's causing these feelings or try some calming techniques?";
-    }
-
-    if (emotion === 'happy') {
-      return "I'm glad to hear you're feeling good! It's wonderful when we have these positive moments. What's been going well for you?";
-    }
-
-    // Default responses
-    const responses = [
-      "Thank you for sharing that with me. Can you tell me more about how you're feeling?",
-      "I'm here to listen. What would be most helpful for you right now?",
-      "It sounds like you're going through something difficult. Would you like to talk about it?",
-      "I appreciate you opening up. How can I best support you today?",
-    ];
-
-    return responses[Math.floor(Math.random() * responses.length)];
-  };
-
-  const handleSendMessage = () => {
-    if (!inputText.trim()) return;
-
-    const emotion = detectEmotion(inputText);
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputText,
+      text: userText,
       isBot: false,
       timestamp: new Date(),
-      emotion: emotion !== 'neutral' ? emotion : undefined,
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
 
-    // Simulate bot response delay
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: generateBotResponse(inputText, emotion),
-        isBot: true,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, botResponse]);
-    }, 1000);
+    // Prepare conversation history for AI
+    const conversationHistory = messages.map(msg => ({
+      role: msg.isBot ? 'assistant' as const : 'user' as const,
+      content: msg.text,
+    }));
+    conversationHistory.push({ role: 'user', content: userText });
+
+    // Create placeholder for bot response
+    const botMessageId = (Date.now() + 1).toString();
+    setMessages(prev => [...prev, {
+      id: botMessageId,
+      text: '',
+      isBot: true,
+      timestamp: new Date(),
+    }]);
+
+    let accumulatedText = '';
+
+    await sendMessage(
+      conversationHistory,
+      currentMood,
+      (delta) => {
+        accumulatedText += delta;
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === botMessageId 
+              ? { ...msg, text: accumulatedText }
+              : msg
+          )
+        );
+      },
+      () => {
+        // Done - message is complete
+      },
+      (error) => {
+        toast.error(error);
+        // Remove the empty bot message on error
+        setMessages(prev => prev.filter(msg => msg.id !== botMessageId));
+      }
+    );
+  };
+
+  const handleMoodSubmit = (mood: number, note: string) => {
+    setCurrentMood(mood);
+    setShowMoodTracker(false);
+    
+    const moodMessage: Message = {
+      id: Date.now().toString(),
+      text: `I logged my mood as ${mood}/10${note ? `: "${note}"` : ''}`,
+      isBot: false,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, moodMessage]);
+
+    // Generate AI response about the mood
+    const conversationHistory = messages.map(msg => ({
+      role: msg.isBot ? 'assistant' as const : 'user' as const,
+      content: msg.text,
+    }));
+    conversationHistory.push({ 
+      role: 'user', 
+      content: `I just logged my mood as ${mood}/10.${note ? ` Note: ${note}` : ''} Please acknowledge this and offer appropriate support based on my mood level.`
+    });
+
+    const botMessageId = (Date.now() + 1).toString();
+    setMessages(prev => [...prev, {
+      id: botMessageId,
+      text: '',
+      isBot: true,
+      timestamp: new Date(),
+    }]);
+
+    let accumulatedText = '';
+
+    sendMessage(
+      conversationHistory,
+      mood,
+      (delta) => {
+        accumulatedText += delta;
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === botMessageId 
+              ? { ...msg, text: accumulatedText }
+              : msg
+          )
+        );
+      },
+      () => {},
+      (error) => {
+        toast.error(error);
+        setMessages(prev => prev.filter(msg => msg.id !== botMessageId));
+      }
+    );
+  };
+
+  const handleMeditationComplete = (duration: number) => {
+    setShowMeditationTimer(false);
+    const minutes = Math.round(duration / 60);
+    
+    const meditationMessage: Message = {
+      id: Date.now().toString(),
+      text: `I completed a ${minutes} minute meditation session!`,
+      isBot: false,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, meditationMessage]);
+
+    // AI response
+    const conversationHistory = messages.map(msg => ({
+      role: msg.isBot ? 'assistant' as const : 'user' as const,
+      content: msg.text,
+    }));
+    conversationHistory.push({ 
+      role: 'user', 
+      content: `I just completed a ${minutes} minute meditation session. Please congratulate me and ask how I feel.`
+    });
+
+    const botMessageId = (Date.now() + 1).toString();
+    setMessages(prev => [...prev, {
+      id: botMessageId,
+      text: '',
+      isBot: true,
+      timestamp: new Date(),
+    }]);
+
+    let accumulatedText = '';
+
+    sendMessage(
+      conversationHistory,
+      currentMood,
+      (delta) => {
+        accumulatedText += delta;
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === botMessageId 
+              ? { ...msg, text: accumulatedText }
+              : msg
+          )
+        );
+      },
+      () => {},
+      (error) => {
+        toast.error(error);
+        setMessages(prev => prev.filter(msg => msg.id !== botMessageId));
+      }
+    );
   };
 
   const handleExerciseComplete = (exerciseId: string, feedback: string) => {
-    // Create a message about the completed exercise
     const exerciseMessage: Message = {
       id: Date.now().toString(),
       text: `I completed the ${exerciseId.replace('-', ' ')} exercise. ${feedback}`,
       isBot: false,
       timestamp: new Date(),
     };
-
     setMessages(prev => [...prev, exerciseMessage]);
 
-    // Generate a supportive bot response
-    setTimeout(() => {
-      const responses = [
-        "That's wonderful that you took time for mindfulness! How are you feeling now compared to before the exercise?",
-        "Great job completing that exercise! Mindfulness takes practice, and you're building that skill. What did you notice during the exercise?",
-        "I'm so proud of you for taking care of your mental health. Regular mindfulness practice can really help manage stress and anxiety. Would you like to try another exercise or talk about how you're feeling?",
-      ];
-      
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: responses[Math.floor(Math.random() * responses.length)],
-        isBot: true,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, botResponse]);
-    }, 1000);
+    const conversationHistory = messages.map(msg => ({
+      role: msg.isBot ? 'assistant' as const : 'user' as const,
+      content: msg.text,
+    }));
+    conversationHistory.push({ 
+      role: 'user', 
+      content: `I just completed the ${exerciseId.replace('-', ' ')} exercise. ${feedback} Please acknowledge this achievement.`
+    });
+
+    const botMessageId = (Date.now() + 1).toString();
+    setMessages(prev => [...prev, {
+      id: botMessageId,
+      text: '',
+      isBot: true,
+      timestamp: new Date(),
+    }]);
+
+    let accumulatedText = '';
+
+    sendMessage(
+      conversationHistory,
+      currentMood,
+      (delta) => {
+        accumulatedText += delta;
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === botMessageId 
+              ? { ...msg, text: accumulatedText }
+              : msg
+          )
+        );
+      },
+      () => {},
+      (error) => {
+        toast.error(error);
+        setMessages(prev => prev.filter(msg => msg.id !== botMessageId));
+      }
+    );
 
     setShowMindfulnessExercises(false);
   };
@@ -150,43 +293,21 @@ const ChatInterface = () => {
       setShowBreathingExercise(true);
       return;
     }
-
     if (action === 'Start mindfulness exercise') {
       setShowMindfulnessExercises(true);
       return;
     }
+    if (action === 'Track my mood') {
+      setShowMoodTracker(true);
+      return;
+    }
+    if (action === 'Start meditation timer') {
+      setShowMeditationTimer(true);
+      return;
+    }
 
-    const actionMessage: Message = {
-      id: Date.now().toString(),
-      text: action,
-      isBot: false,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, actionMessage]);
-
-    // Generate appropriate bot response based on action
-    setTimeout(() => {
-      let response = '';
-      if (action.includes('breathing')) {
-        response = "Great choice! Breathing exercises can be very helpful for managing anxiety and stress. Let me guide you through one.";
-        setShowBreathingExercise(true);
-      } else if (action.includes('anxiety')) {
-        response = "Here are some effective strategies for managing anxiety: 1) Practice deep breathing, 2) Use grounding techniques, 3) Challenge negative thoughts, 4) Stay present in the moment, 5) Reach out for support when needed.";
-      } else if (action.includes('grounding')) {
-        response = "Let's try the 5-4-3-2-1 technique: Name 5 things you can see, 4 things you can touch, 3 things you can hear, 2 things you can smell, and 1 thing you can taste. This helps bring you back to the present moment.";
-      } else if (action.includes('mood')) {
-        response = "Let's check in with your mood. On a scale of 1-10, how would you rate your current emotional state? What's contributing to how you're feeling right now?";
-      }
-
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: response,
-        isBot: true,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, botResponse]);
-    }, 500);
+    // For other actions, send as a message
+    setInputText(action);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -198,11 +319,16 @@ const ChatInterface = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chat Header with Reset Button */}
+      {/* Chat Header */}
       <div className="flex items-center justify-between p-4 border-b border-blue-100 dark:border-slate-600 bg-blue-50 dark:bg-slate-700">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-          <span className="text-sm text-blue-600 dark:text-blue-300 font-medium">Chat Active</span>
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <span className="text-sm text-blue-600 dark:text-blue-300 font-medium">Mindful AI</span>
+          {currentMood && (
+            <span className="text-xs bg-blue-100 dark:bg-slate-600 text-blue-600 dark:text-blue-300 px-2 py-1 rounded-full">
+              Mood: {currentMood}/10
+            </span>
+          )}
         </div>
         <button
           onClick={() => setShowResetDialog(true)}
@@ -210,10 +336,11 @@ const ChatInterface = () => {
           title="Reset Chat"
         >
           <RotateCcw className="w-4 h-4" />
-          Reset Chat
+          Reset
         </button>
       </div>
 
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-slate-800">
         {messages.map((message) => (
           <ChatMessage
@@ -224,11 +351,18 @@ const ChatInterface = () => {
             emotion={message.emotion}
           />
         ))}
+        {isLoading && messages[messages.length - 1]?.text === '' && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Thinking...</span>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
       <SuggestedActions onActionClick={handleActionClick} />
 
+      {/* Input */}
       <div className="p-4 border-t border-blue-100 dark:border-slate-600 bg-white dark:bg-slate-800">
         <div className="flex gap-2">
           <input
@@ -236,14 +370,16 @@ const ChatInterface = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type your response..."
-            className="flex-1 px-4 py-2 border border-blue-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Share what's on your mind..."
+            disabled={isLoading}
+            className="flex-1 px-4 py-2 border border-blue-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
           />
           <button
             onClick={handleSendMessage}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            disabled={isLoading || !inputText.trim()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Send className="w-4 h-4" />
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>
         <div className="text-xs text-blue-400 dark:text-blue-300 mt-2 text-center">
@@ -251,11 +387,25 @@ const ChatInterface = () => {
         </div>
       </div>
 
+      {/* Modals */}
+      <MoodTracker
+        isVisible={showMoodTracker}
+        onClose={() => setShowMoodTracker(false)}
+        onMoodSubmit={handleMoodSubmit}
+        currentMood={currentMood}
+      />
+
+      <MeditationTimer
+        isVisible={showMeditationTimer}
+        onClose={() => setShowMeditationTimer(false)}
+        onComplete={handleMeditationComplete}
+      />
+
       <MindfulnessExercises 
         isVisible={showMindfulnessExercises}
         onClose={() => setShowMindfulnessExercises(false)}
         onExerciseComplete={handleExerciseComplete}
-        userStressLevel={crisisLevel === 'high' ? 'high' : crisisLevel === 'low' ? 'low' : 'medium'}
+        userStressLevel={currentMood && currentMood <= 3 ? 'high' : currentMood && currentMood >= 7 ? 'low' : 'medium'}
       />
 
       <CrisisAlert 
