@@ -8,7 +8,9 @@ import ResetChatDialog from './ResetChatDialog';
 import MindfulnessExercises from './MindfulnessExercises';
 import MoodTracker from './MoodTracker';
 import MeditationTimer from './MeditationTimer';
+import MessageLimitWarning from './MessageLimitWarning';
 import { useAIChat } from '@/hooks/useAIChat';
+import { useMessageLimit } from '@/hooks/useMessageLimit';
 import { toast } from 'sonner';
 
 interface Message {
@@ -39,8 +41,16 @@ const ChatInterface = () => {
   const [showMeditationTimer, setShowMeditationTimer] = useState(false);
   const [currentMood, setCurrentMood] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const { sendMessage, isLoading } = useAIChat();
+  const {
+    messageCount,
+    remainingMessages,
+    isLimitReached,
+    isLoading: isLoadingLimit,
+    incrementMessageCount,
+    resetSession
+  } = useMessageLimit();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,7 +58,7 @@ const ChatInterface = () => {
 
   useEffect(scrollToBottom, [messages]);
 
-  const handleResetChat = () => {
+  const handleResetChat = async () => {
     setMessages([
       {
         id: '1',
@@ -62,6 +72,8 @@ const ChatInterface = () => {
     setShowBreathingExercise(false);
     setShowResetDialog(false);
     setCurrentMood(null);
+    await resetSession();
+    toast.success('Chat reset successfully. Message limit has been refreshed.');
   };
 
   const checkForCrisis = (text: string): boolean => {
@@ -70,10 +82,13 @@ const ChatInterface = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
+    if (!inputText.trim() || isLoading || isLimitReached) return;
 
     const userText = inputText.trim();
-    
+
+    // Increment message count
+    await incrementMessageCount();
+
     // Check for crisis keywords
     if (checkForCrisis(userText)) {
       setShowCrisisAlert(true);
@@ -321,12 +336,21 @@ const ChatInterface = () => {
     <div className="flex flex-col h-full">
       {/* Chat Header */}
       <div className="flex items-center justify-between p-4 border-b border-blue-100 dark:border-slate-600 bg-blue-50 dark:bg-slate-700">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
           <span className="text-sm text-blue-600 dark:text-blue-300 font-medium">Mindful AI</span>
           {currentMood && (
             <span className="text-xs bg-blue-100 dark:bg-slate-600 text-blue-600 dark:text-blue-300 px-2 py-1 rounded-full">
               Mood: {currentMood}/10
+            </span>
+          )}
+          {!isLoadingLimit && (
+            <span className={`text-xs px-2 py-1 rounded-full ${
+              remainingMessages <= 10
+                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+            }`}>
+              {remainingMessages} messages left
             </span>
           )}
         </div>
@@ -362,6 +386,11 @@ const ChatInterface = () => {
 
       <SuggestedActions onActionClick={handleActionClick} />
 
+      <MessageLimitWarning
+        remainingMessages={remainingMessages}
+        isLimitReached={isLimitReached}
+      />
+
       {/* Input */}
       <div className="p-4 border-t border-blue-100 dark:border-slate-600 bg-white dark:bg-slate-800">
         <div className="flex gap-2">
@@ -370,13 +399,13 @@ const ChatInterface = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Share what's on your mind..."
-            disabled={isLoading}
+            placeholder={isLimitReached ? "Message limit reached" : "Share what's on your mind..."}
+            disabled={isLoading || isLimitReached}
             className="flex-1 px-4 py-2 border border-blue-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
           />
           <button
             onClick={handleSendMessage}
-            disabled={isLoading || !inputText.trim()}
+            disabled={isLoading || !inputText.trim() || isLimitReached}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

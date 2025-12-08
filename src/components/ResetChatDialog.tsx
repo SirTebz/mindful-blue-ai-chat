@@ -20,7 +20,7 @@ const ResetChatDialog = ({ isOpen, onClose, onConfirm }: ResetChatDialogProps) =
         </div>
         
         <p className="text-gray-600 mb-6">
-          Are you sure you want to reset the chat? This will clear all your conversation history and start fresh. This action cannot be undone.
+          Are you sure you want to reset the chat? This will clear all your conversation history, refresh your message limit, and start fresh. This action cannot be undone.
         </p>
         
         <div className="flex gap-3">
