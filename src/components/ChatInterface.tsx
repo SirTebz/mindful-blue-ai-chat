@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, RotateCcw, Loader2 } from 'lucide-react';
+import { Send, RotateCcw, Loader2, Download } from 'lucide-react';
 import ChatMessage from './ChatMessage';
 import SuggestedActions from './SuggestedActions';
 import CrisisAlert from './CrisisAlert';
@@ -8,8 +8,12 @@ import ResetChatDialog from './ResetChatDialog';
 import MindfulnessExercises from './MindfulnessExercises';
 import MoodTracker from './MoodTracker';
 import MeditationTimer from './MeditationTimer';
+import MessageLimitBanner from './MessageLimitBanner';
+import ConversationExport from './ConversationExport';
 import { useAIChat } from '@/hooks/useAIChat';
 import { toast } from 'sonner';
+
+const MAX_MESSAGES = 35;
 
 interface Message {
   id: string;
@@ -37,10 +41,15 @@ const ChatInterface = () => {
   const [showMindfulnessExercises, setShowMindfulnessExercises] = useState(false);
   const [showMoodTracker, setShowMoodTracker] = useState(false);
   const [showMeditationTimer, setShowMeditationTimer] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [currentMood, setCurrentMood] = useState<number | null>(null);
+  const [userMessageCount, setUserMessageCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { sendMessage, isLoading } = useAIChat();
+
+  const messagesRemaining = Math.max(0, MAX_MESSAGES - userMessageCount);
+  const isLimitReached = userMessageCount >= MAX_MESSAGES;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -62,6 +71,7 @@ const ChatInterface = () => {
     setShowBreathingExercise(false);
     setShowResetDialog(false);
     setCurrentMood(null);
+    setUserMessageCount(0);
   };
 
   const checkForCrisis = (text: string): boolean => {
@@ -70,9 +80,10 @@ const ChatInterface = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
+    if (!inputText.trim() || isLoading || isLimitReached) return;
 
     const userText = inputText.trim();
+    setUserMessageCount(prev => prev + 1);
     
     // Check for crisis keywords
     if (checkForCrisis(userText)) {
@@ -330,15 +341,33 @@ const ChatInterface = () => {
             </span>
           )}
         </div>
-        <button
-          onClick={() => setShowResetDialog(true)}
-          className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 hover:bg-blue-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
-          title="Reset Chat"
-        >
-          <RotateCcw className="w-4 h-4" />
-          Reset
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowExportDialog(true)}
+            className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 hover:bg-blue-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
+            title="Export Conversation"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+          <button
+            onClick={() => setShowResetDialog(true)}
+            className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 hover:bg-blue-100 dark:hover:bg-slate-600 rounded-lg transition-colors"
+            title="Reset Chat"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Reset
+          </button>
+        </div>
       </div>
+
+      {/* Message Limit Banner */}
+      <MessageLimitBanner
+        messagesRemaining={messagesRemaining}
+        maxMessages={MAX_MESSAGES}
+        isLimitReached={isLimitReached}
+        onExportClick={() => setShowExportDialog(true)}
+      />
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-slate-800">
@@ -364,24 +393,38 @@ const ChatInterface = () => {
 
       {/* Input */}
       <div className="p-4 border-t border-blue-100 dark:border-slate-600 bg-white dark:bg-slate-800">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Share what's on your mind..."
-            disabled={isLoading}
-            className="flex-1 px-4 py-2 border border-blue-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={isLoading || !inputText.trim()}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </button>
-        </div>
+        {isLimitReached ? (
+          <div className="text-center py-2">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+              You've reached your message limit. Please export your conversation and reach out to a professional if needed.
+            </p>
+            <button
+              onClick={() => setShowExportDialog(true)}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+            >
+              Export Conversation
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Share what's on your mind..."
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 border border-blue-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={isLoading || !inputText.trim()}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
         <div className="text-xs text-blue-400 dark:text-blue-300 mt-2 text-center">
           If you're in crisis, please call 0800 456 789
         </div>
@@ -422,6 +465,12 @@ const ChatInterface = () => {
         isOpen={showResetDialog}
         onClose={() => setShowResetDialog(false)}
         onConfirm={handleResetChat}
+      />
+
+      <ConversationExport
+        messages={messages}
+        isVisible={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
       />
     </div>
   );
