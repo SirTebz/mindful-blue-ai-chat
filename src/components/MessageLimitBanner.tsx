@@ -46,7 +46,7 @@ const MessageLimitBanner: React.FC<MessageLimitBannerProps> = ({
     <div className="px-4 py-2 bg-blue-50/50 dark:bg-slate-700/50 border-b border-blue-100 dark:border-slate-600">
       <div className="flex items-center justify-between text-xs">
         <span className="text-blue-600 dark:text-blue-300">
-          {messagesRemaining} of {maxMessages} messages remaining
+          {messagesRemaining} messages remaining
         </span>
         <div className="w-24 h-1.5 bg-blue-100 dark:bg-slate-600 rounded-full overflow-hidden">
           <div

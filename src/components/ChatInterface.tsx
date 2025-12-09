@@ -13,7 +13,7 @@ import ConversationExport from './ConversationExport';
 import { useAIChat } from '@/hooks/useAIChat';
 import { toast } from 'sonner';
 
-const MAX_MESSAGES = 20;
+const MAX_MESSAGES = 35;
 
 interface Message {
   id: string;
