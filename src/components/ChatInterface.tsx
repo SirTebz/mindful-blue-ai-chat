@@ -366,6 +366,7 @@ const ChatInterface = () => {
         messagesRemaining={messagesRemaining}
         maxMessages={MAX_MESSAGES}
         isLimitReached={isLimitReached}
+        onExportClick={() => setShowExportDialog(true)}
       />
 
       {/* Messages */}
