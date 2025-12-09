@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Mail, Share2, FileText, X, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { jsPDF } from 'jspdf';
 
 interface Message {
   id: string;
@@ -38,18 +39,75 @@ const ConversationExport: React.FC<ConversationExportProps> = ({
     return header + content + footer;
   };
 
-  const downloadAsTxt = () => {
-    const content = formatConversation();
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mindful-chat-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success('Conversation downloaded as text file');
+  const downloadAsPdf = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let yPosition = 20;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Mindful AI Chat Conversation', margin, yPosition);
+    yPosition += 10;
+
+    // Export date
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text(`Exported: ${new Date().toLocaleString()}`, margin, yPosition);
+    yPosition += 15;
+
+    // Messages
+    doc.setTextColor(0);
+    messages.forEach((msg) => {
+      const sender = msg.isBot ? 'Mindful AI' : 'You';
+      const time = msg.timestamp.toLocaleTimeString();
+
+      // Check if we need a new page
+      if (yPosition > doc.internal.pageSize.getHeight() - 40) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      // Sender header
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(msg.isBot ? 59 : 100, msg.isBot ? 130 : 100, msg.isBot ? 246 : 100);
+      doc.text(`[${time}] ${sender}:`, margin, yPosition);
+      yPosition += 6;
+
+      // Message content
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0);
+      doc.setFontSize(11);
+      const lines = doc.splitTextToSize(msg.text, maxWidth);
+      lines.forEach((line: string) => {
+        if (yPosition > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+      yPosition += 8;
+    });
+
+    // Footer
+    if (yPosition > doc.internal.pageSize.getHeight() - 30) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    yPosition += 10;
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text('If you need immediate support, call: 0800 456 789', margin, yPosition);
+    yPosition += 5;
+    doc.text('South African Crisis Hotline - Available 24/7', margin, yPosition);
+
+    doc.save(`mindful-chat-${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('Conversation downloaded as PDF');
     onClose();
   };
 
@@ -123,14 +181,14 @@ const ConversationExport: React.FC<ConversationExportProps> = ({
           </p>
 
           <button
-            onClick={downloadAsTxt}
+            onClick={downloadAsPdf}
             className="w-full flex items-center gap-3 p-3 bg-blue-50 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-slate-600 rounded-lg transition-colors text-left"
           >
             <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
               <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="font-medium text-gray-900 dark:text-gray-100">Download as Text File</div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">Download as PDF</div>
               <div className="text-xs text-gray-500 dark:text-gray-400">Save to your device</div>
             </div>
           </button>
